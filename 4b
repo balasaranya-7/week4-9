@@ -1,0 +1,119 @@
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(const MyApp());
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    initialRoute: '/',
+    routes: {
+      '/': (_) => const HomePage(),
+      '/about': (_) => const AboutPage(),
+    },
+    onGenerateRoute: (s) {
+      if (s.name == '/details') {
+        final a = s.arguments as DetailsPageArguments;
+        return MaterialPageRoute(
+          builder: (_) => DetailsPage(
+            title: a.title, message: a.message),
+        );
+      }
+      return null;
+    },
+    onUnknownRoute: (_) => MaterialPageRoute(
+      builder: (_) => const UnknownPage()),
+  );
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Home Page')),
+    body: Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () => Navigator.pushNamed(context, '/about'),
+          child: const Text('Go to About Page')),
+        ElevatedButton(
+          onPressed: () => Navigator.pushNamed(
+            context, '/details',
+            arguments: const DetailsPageArguments(
+              title: 'Details Page',
+              message: 'Message from Home Page!')),
+          child: const Text('Go to Details Page')),
+        ElevatedButton(
+          onPressed: () => Navigator.pushNamed(context, '/undefined'),
+          child: const Text('Undefined Route')),
+      ],
+    )),
+  );
+}
+
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('About Page')),
+    body: Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('This is the About Page'),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Go Back')),
+      ],
+    )),
+  );
+}
+
+class DetailsPage extends StatelessWidget {
+  final String title, message;
+  const DetailsPage({
+    super.key, required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(message),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Back to Home')),
+      ],
+    )),
+  );
+}
+
+class DetailsPageArguments {
+  final String title, message;
+  const DetailsPageArguments({
+    required this.title, required this.message});
+}
+
+class UnknownPage extends StatelessWidget {
+  const UnknownPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('404 - Not Found')),
+    body: Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text("Oops! Page doesn't exist."),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Go Back')),
+      ],
+    )),
+  );
+}
