@@ -1,0 +1,96 @@
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(const MyApp());
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) => const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: UsersPage(),
+  );
+}
+
+class User {
+  final int id;
+  final String name, email;
+
+  const User(this.id, this.name, this.email);
+
+  factory User.fromJson(Map<String, dynamic> j) =>
+      User(j['id'], j['name'] ?? 'N/A', j['email'] ?? 'N/A');
+}
+
+class UsersPage extends StatefulWidget {
+  const UsersPage({super.key});
+
+  @override
+  State<UsersPage> createState() => _UsersPageState();
+}
+
+class _UsersPageState extends State<UsersPage> {
+  late Future<List<User>> users;
+
+  @override
+  void initState() {
+    super.initState();
+    users = fetchUsers();
+  }
+
+  Future<List<User>> fetchUsers() async {
+    final res = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/users'));
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load users');
+    }
+
+    final data = jsonDecode(res.body) as List;
+    return data.map((e) => User.fromJson(e)).toList();
+  }
+
+  void retry() => setState(() => users = fetchUsers());
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('User List')),
+    body: FutureBuilder<List<User>>(
+      future: users,
+      builder: (context, s) {
+        if (s.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (s.hasError) {
+          return Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: ${s.error}'),
+              ElevatedButton(onPressed: retry,
+                child: const Text('Retry')),
+            ],
+          ));
+        }
+        if (!s.hasData || s.data!.isEmpty) {
+          return const Center(child: Text('No users found'));
+        }
+        return ListView.separated(
+          itemCount: s.data!.length,
+          separatorBuilder: (_, __) => const Divider(),
+          itemBuilder: (context, i) {
+            final u = s.data![i];
+            return ListTile(
+              leading: CircleAvatar(child: Text('${u.id}')),
+              title: Text(u.name),
+              subtitle: Text(u.email),
+              trailing: const Icon(Icons.person),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
