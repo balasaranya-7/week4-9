@@ -1,0 +1,91 @@
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(const MaterialApp(
+  debugShowCheckedModeBanner: false,
+  home: UserListScreen(),
+));
+
+class User {
+  final int id;
+  final String name, email, phone;
+  const User(this.id, this.name, this.email, this.phone);
+
+  factory User.fromJson(Map<String, dynamic> j) =>
+      User(j['id'], j['name'] ?? 'N/A',
+          j['email'] ?? 'N/A', j['phone'] ?? 'N/A');
+}
+
+Future<List<User>> fetchUsers() async {
+  final r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/users'));
+  if (r.statusCode != 200) throw Exception('Failed to load users');
+  return (jsonDecode(r.body) as List)
+      .map((e) => User.fromJson(e)).toList();
+}
+
+class UserListScreen extends StatefulWidget {
+  const UserListScreen({super.key});
+  @override
+  State<UserListScreen> createState() => _UserListScreenState();
+}
+
+class _UserListScreenState extends State<UserListScreen> {
+  late Future<List<User>> users;
+
+  @override
+  void initState() {
+    super.initState();
+    users = fetchUsers();
+  }
+
+  void retry() => setState(() => users = fetchUsers());
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('User List')),
+    body: FutureBuilder<List<User>>(
+      future: users,
+      builder: (context, s) {
+        if (s.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (s.hasError) {
+          return Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('${s.error}'),
+              ElevatedButton(onPressed: retry,
+                  child: const Text('Retry')),
+            ],
+          ));
+        }
+        if (!s.hasData || s.data!.isEmpty) {
+          return const Center(child: Text('No users found'));
+        }
+        return ListView.builder(
+          itemCount: s.data!.length,
+          itemBuilder: (context, i) {
+            final u = s.data![i];
+            return Card(child: ListTile(
+              leading: CircleAvatar(child: Text('${u.id}')),
+              title: Text(u.name),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [Text(u.email), Text(u.phone)],
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.phone),
+                onPressed: () => ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(
+                      content: Text('Call ${u.phone}'))),
+              ),
+            ));
+          },
+        );
+      },
+    ),
+  );
+}
